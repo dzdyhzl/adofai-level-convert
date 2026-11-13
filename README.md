@@ -177,8 +177,9 @@ build.cmd
 - **免安装直接使用**：.NET Framework 4.x 零依赖单文件，Windows 10/11 自带运行时——把
   `level convert GUI.exe` 单个文件发给别人即可直接运行（`level convert.exe` 为可选命令行版）。
   Win7/8 需先装一次 [微软官方 .NET Framework 4.8 运行时](https://dotnet.microsoft.com/download/dotnet-framework/net48)。
-- **安装包**：`release\level convert 安装包.exe`（GUI/CLI/README 已内嵌）。双击 → 点"立即安装"
-  → 在**安装包同级**创建 `level convert by dzdyhzl` 文件夹并写入 3 个文件；重复安装即升级（覆盖）。
+- **安装包**：`release\level convert 安装包.exe`（GUI/CLI/README 已内嵌）。双击 → **选择安装路径**
+  （默认安装包同级，可"浏览..."自选；也可直接在路径框输入）→ 点"立即安装" → 在所选路径下创建
+  `level convert by dzdyhzl` 文件夹并写入 3 个文件；重复安装即升级（覆盖）。
 - **GitHub Release 下载**：<https://github.com/dzdyhzl/adofai-level-convert/releases/latest>
   （资产：安装包 `level-convert-by-dzdyhzl-setup.exe`、免安装 `level-convert-gui.exe`、命令行 `level-convert-cli.exe`）
 - 安装包由 `build.cmd` 自动生成，或手动：

@@ -1,12 +1,12 @@
 // ============================================================================
 //  Installer.cs — 单文件安装包源码（安装包内嵌 GUI/CLI/README 三个文件）
-//  编译（build.cmd 会自动执行）：
+//  编译（build.cmd 自动执行）：
 //    csc /target:winexe /out:"release\level convert 安装包.exe" Installer.cs
 //        /res:"level convert GUI.exe","LevelConvertGui"
 //        /res:"level convert.exe","LevelConvertCli"
 //        /res:"README.md","ReadmeMd"
-//  行为：双击 → 点"立即安装" → 在安装包同级创建 "level convert by dzdyhzl"
-//        文件夹并把内嵌文件写入。命令行 --silent 静默安装（自动化测试用）。
+//  行为：默认安装到安装包同级；用户可自行选择安装路径（将在所选路径下创建
+//        "level convert by dzdyhzl" 文件夹）。命令行 --silent [路径] 静默安装。
 // ============================================================================
 
 using System;
@@ -21,7 +21,6 @@ internal static class InstallerProgram
 {
     internal const string FolderName = "level convert by dzdyhzl";
     internal static readonly string BaseDir = AppDomain.CurrentDomain.BaseDirectory;
-    internal static readonly string Target = Path.Combine(BaseDir, FolderName);
 
     [STAThread]
     private static void Main(string[] args)
@@ -29,9 +28,12 @@ internal static class InstallerProgram
         bool silent = args != null && args.Length > 0 && args[0] == "--silent";
         if (silent)
         {
+            // --silent [父路径]：缺省 = 安装包同级
+            string parent = args != null && args.Length > 1 ? args[1] : BaseDir;
+            string target = Path.Combine(parent, FolderName);
             string err;
-            bool ok = DoInstall(Target, out err);
-            string msg = (ok ? "INSTALL-OK " : "INSTALL-FAIL ") + Target + (err == null ? "" : " | " + err);
+            bool ok = DoInstall(target, out err);
+            string msg = (ok ? "INSTALL-OK " : "INSTALL-FAIL ") + target + (err == null ? "" : " | " + err);
             try { File.WriteAllText(Path.Combine(BaseDir, "_install-result.txt"), msg, Encoding.UTF8); } catch { }
             try { Console.OutputEncoding = Encoding.UTF8; } catch { }
             try { Console.WriteLine(msg); } catch { }
@@ -79,63 +81,120 @@ internal static class InstallerProgram
 
 internal sealed class InstallerForm : Form
 {
-    private readonly string target = InstallerProgram.Target;
+    private string parentDir = InstallerProgram.BaseDir;   // 安装父路径（用户可选）
+    private TextBox txtPath;
+    private Label lblTargetValue, lblStatus;
     private Button btnInstall, btnOpen;
-    private Label lblStatus, lblPath;
 
     internal InstallerForm()
     {
         Text = "level convert by dzdyhzl — 安装程序";
         Font = new Font("Microsoft YaHei UI", 9F);
-        ClientSize = new Size(500, 190);
+        ClientSize = new Size(560, 240);
         FormBorderStyle = FormBorderStyle.FixedSingle;
         MaximizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;
 
         Label title = new Label();
-        title.Text = "本安装包会在它所在的文件夹内创建子文件夹并安装：";
+        title.Text = "选择安装路径（将在所选路径下创建文件夹 \"" + InstallerProgram.FolderName + "\" 并安装）：";
         title.AutoSize = true;
         title.Location = new Point(16, 16);
-        lblPath = new Label();
-        lblPath.Text = target;
-        lblPath.AutoSize = true;
-        lblPath.Location = new Point(16, 42);
-        lblPath.ForeColor = Color.DimGray;
+
+        txtPath = new TextBox();
+        txtPath.Location = new Point(16, 44);
+        txtPath.Width = 440;
+        txtPath.Text = InstallerProgram.BaseDir;
+        txtPath.TextChanged += delegate { UpdateTargetPreview(); };
+
+        Button btnBrowse = new Button();
+        btnBrowse.Text = "浏览...";
+        btnBrowse.Location = new Point(464, 42);
+        btnBrowse.Size = new Size(80, 25);
+        btnBrowse.Click += OnBrowse;
+
+        Label lbl2 = new Label();
+        lbl2.Text = "最终安装位置：";
+        lbl2.AutoSize = true;
+        lbl2.Location = new Point(16, 84);
+
+        lblTargetValue = new Label();
+        lblTargetValue.AutoSize = false;
+        lblTargetValue.Location = new Point(16, 106);
+        lblTargetValue.Size = new Size(528, 20);
+        lblTargetValue.ForeColor = Color.DimGray;
+
         btnInstall = new Button();
         btnInstall.Text = "立即安装";
         btnInstall.Size = new Size(220, 38);
-        btnInstall.Location = new Point(16, 88);
+        btnInstall.Location = new Point(16, 140);
         btnInstall.Click += OnInstall;
+
         btnOpen = new Button();
         btnOpen.Text = "打开安装文件夹";
         btnOpen.Size = new Size(220, 38);
-        btnOpen.Location = new Point(254, 88);
+        btnOpen.Location = new Point(254, 140);
         btnOpen.Enabled = false;
         btnOpen.Click += delegate
         {
-            try { Process.Start("explorer.exe", "\"" + target + "\""); } catch { }
+            try { Process.Start("explorer.exe", "\"" + ComposeTarget() + "\""); } catch { }
         };
+
         lblStatus = new Label();
         lblStatus.Text = "";
         lblStatus.AutoSize = true;
-        lblStatus.Location = new Point(16, 148);
+        lblStatus.Location = new Point(16, 196);
         lblStatus.ForeColor = Color.Green;
 
         Controls.Add(title);
-        Controls.Add(lblPath);
+        Controls.Add(txtPath);
+        Controls.Add(btnBrowse);
+        Controls.Add(lbl2);
+        Controls.Add(lblTargetValue);
         Controls.Add(btnInstall);
         Controls.Add(btnOpen);
         Controls.Add(lblStatus);
+
+        UpdateTargetPreview();
+    }
+
+    private string ComposeTarget()
+    {
+        try { return Path.Combine(parentDir.Trim(), InstallerProgram.FolderName); }
+        catch { return Path.Combine(InstallerProgram.BaseDir, InstallerProgram.FolderName); }
+    }
+
+    private void UpdateTargetPreview()
+    {
+        parentDir = txtPath.Text.Trim().Length > 0 ? txtPath.Text.Trim() : InstallerProgram.BaseDir;
+        lblTargetValue.Text = ComposeTarget();
+    }
+
+    private void OnBrowse(object sender, EventArgs e)
+    {
+        using (FolderBrowserDialog dlg = new FolderBrowserDialog())
+        {
+            dlg.Description = "选择安装位置（将在该路径下创建 \"" + InstallerProgram.FolderName + "\" 文件夹）";
+            dlg.ShowNewFolderButton = true;
+            try { dlg.SelectedPath = parentDir; } catch { }
+            if (dlg.ShowDialog(this) == DialogResult.OK)
+            {
+                parentDir = dlg.SelectedPath;
+                txtPath.Text = parentDir;
+                UpdateTargetPreview();
+            }
+        }
     }
 
     private void OnInstall(object sender, EventArgs e)
     {
+        UpdateTargetPreview();
+        string target = ComposeTarget();
         string err;
         bool ok = InstallerProgram.DoInstall(target, out err);
         if (ok)
         {
             lblStatus.ForeColor = Color.Green;
-            lblStatus.Text = "✔ 安装完成：3 个文件已写入上述文件夹";
+            lblStatus.Text = "✔ 安装完成：3 个文件已写入 " + target;
             btnInstall.Text = "安装完成";
             btnInstall.Enabled = false;
             btnOpen.Enabled = true;
