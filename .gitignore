@@ -1,0 +1,8 @@
+# 临时/测试产物
+_*.cs
+_*.exe
+_*.txt
+_*.adofai
+release/_installtest/
+*.user
+.vs/
