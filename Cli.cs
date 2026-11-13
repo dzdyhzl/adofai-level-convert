@@ -174,10 +174,7 @@ namespace LevelConvert
                 op.Core.RemoveDecorations = true;
                 op.Core.RemoveDecorationsKeyword = op.Core.RemoveKeyword;
             }
-            if (op.Core.Remove && string.IsNullOrEmpty(op.Core.RemoveKeyword) && op.Core.RemoveKeywords.Count == 0 && op.Core.RemoveTypes.Count == 0)
-                throw new Exception("--remove* 需要关键词（或 --remove-keywords / --remove-types 列表）");
-            if (op.Core.RemoveDecorations && string.IsNullOrEmpty(op.Core.RemoveDecorationsKeyword))
-                throw new Exception("--remove-decorations 需要关键词");
+            // 关键词可选：不填 = 不加关键词限制（--remove 仅类型删；--remove-decorations 删全部装饰）
             return op;
         }
 

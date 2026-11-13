@@ -167,7 +167,7 @@ namespace LevelConvert
             Row(hCheck, S(8), S(5), 1).Items.AddRange(new VItem[] { Item(chkAddKeys, 0, 0), Item(chkPathData, 0, 0), Item(chkKeepPathData, 0, 0) });
 
             // —— 删除事件：关键词 + 事件类型多选 ——
-            chkRemove = MkCheck("删除事件（行需同时包含全部关键词，且类型已勾选；只给其一时按单项删）");
+            chkRemove = MkCheck("删除事件（同时满足：行含全部关键词〔不填=不限〕、类型在勾选集合；至少给一项）");
             Row(hCheck, S(10), S(6), 1).Items.Add(Item(chkRemove, 0, 0));
 
             Label lk = MkLabel("事件关键词:");
@@ -208,7 +208,7 @@ namespace LevelConvert
             rowPanel = Row(0, 0, 0, 0); rowPanel.FlexH = true; rowPanel.HMin = S(96);
             rowPanel.Items.Add(Item(flpTypes, 1, 0));
 
-            chkRemoveDecor = MkCheck("删除装饰（行需同时包含全部关键词的装饰全部删除）");
+            chkRemoveDecor = MkCheck("删除装饰（行含全部关键词则删；不填关键词=删除全部装饰）");
             chkRemoveDecor.CheckedChanged += delegate { SetRemoveEnabled(); };
             Row(hCheck, S(14), S(8), 1).Items.Add(Item(chkRemoveDecor, 0, 0));
 
@@ -573,16 +573,7 @@ namespace LevelConvert
                     MessageBox.Show("请至少选择一项更改要求（升级 或 删除事件）", "level convert");
                     return;
                 }
-                if (op.Remove && listKeywordEv.Items.Count == 0 && txtKeyword.Text.Length == 0 && op.RemoveTypes.Count == 0)
-                {
-                    MessageBox.Show("删除事件：请输入关键词并点【添加】，或至少勾选一种事件类型", "level convert");
-                    return;
-                }
-                if (op.RemoveDecorations && listKeywordDecor.Items.Count == 0 && txtKeywordDecor.Text.Length == 0)
-                {
-                    MessageBox.Show("删除装饰：请输入装饰关键词并点【添加】", "level convert");
-                    return;
-                }
+                // 关键词可选：不填 = 不加关键词限制（删除事件仅按类型；删除装饰删全部装饰）
 
                 string inDir = Path.GetDirectoryName(loadedPath);
                 string outPath;
@@ -608,6 +599,16 @@ namespace LevelConvert
                 LoadedLevel L = Core.LoadFile(loadedPath);
                 txtLog.Clear();
                 if (L.Repairs.Count > 0) AppendLog("[容错] 已修复: " + string.Join("、", L.Repairs.ToArray()));
+
+                // 安全确认：未填装饰关键词 = 删除全部装饰
+                if (op.RemoveDecorations && op.RemoveDecorationsKeywords.Count == 0 && op.RemoveDecorationsKeyword.Length == 0)
+                {
+                    JArr decos = L.Root.Get("decorations") as JArr;
+                    int n = decos != null ? decos.Items.Count : 0;
+                    DialogResult dr = MessageBox.Show("未填写装饰关键词：将删除全部 " + n + " 个装饰。继续吗？",
+                        "level convert", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                    if (dr != DialogResult.Yes) { AppendLog("[取消] 已放弃删除装饰"); return; }
+                }
 
                 bool hadChanges;
                 List<string> lines = Core.ApplyOperations(L, op, out hadChanges);

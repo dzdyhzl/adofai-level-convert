@@ -705,25 +705,32 @@ namespace LevelConvert
             StringComparison cmpTop = op.CaseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
             int removedActions = 0, removedDecor = 0;
             Dictionary<string, int> removedByType = new Dictionary<string, int>();
-            if (op.Remove && !op.DecorationsOnly && (kwActive || typesActive))
+            if (op.Remove && !op.DecorationsOnly)
             {
                 JArr actions = top.Get("actions") as JArr;
                 if (actions != null)
                     removedActions = FilterEvents(actions, op, kwList, removedByType, "actions", kwActive, typeSet, typesActive);
+                // 无关键词且无类型 → kwHit/typeHit 恒 false，自然不删除任何行
             }
             // ---- 删除装饰（仅 decorations；行须同时包含全部关键词，与类型面板无关）----
             List<string> decorKwList = MergeKeywords(op.RemoveDecorationsKeyword, op.RemoveDecorationsKeywords);
             bool decorKwActive = decorKwList.Count > 0;
             StringComparison cmpDecor = op.RemoveDecorationsCaseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-            if (op.RemoveDecorations && !op.ActionsOnly && decorKwActive)
+            if (op.RemoveDecorations && !op.ActionsOnly)
             {
                 JArr decorations = top.Get("decorations") as JArr;
                 if (decorations != null)
                     removedDecor = FilterDecorations(decorations, decorKwList, op.RemoveDecorationsExact, cmpDecor, removedByType);
+                // decorKwList 为空 = 无关键词限制 → 删除全部装饰
             }
             int total = removedActions + removedDecor;
-            if (op.Remove && removedActions == 0 && (kwActive || typesActive) && !op.DecorationsOnly)
-                lines.Add("[删除事件] 没有匹配的事件（需同时包含: " + JoinKeywords(kwList) + "）");
+            if (op.Remove && removedActions == 0 && !op.DecorationsOnly)
+            {
+                if (kwActive || typesActive)
+                    lines.Add("[删除事件] 没有匹配的事件（需同时包含: " + JoinKeywords(kwList) + "）");
+                else
+                    lines.Add("[删除事件] 未提供条件（无关键词、未勾选类型），未删除任何事件");
+            }
             if (op.RemoveDecorations && removedDecor == 0 && decorKwActive && !op.ActionsOnly)
                 lines.Add("[删除装饰] 没有匹配的装饰（需同时包含: " + JoinKeywords(decorKwList) + "）");
             if (total > 0)
@@ -733,7 +740,7 @@ namespace LevelConvert
                 {
                     string cond = kwActive && typesActive
                         ? (op.TypesOr ? "关键词∪类型" : "全部关键词(" + kwList.Count + ")∩类型")
-                        : (kwActive ? ("全部关键词(" + kwList.Count + ")") : "类型");
+                        : (kwActive ? ("全部关键词(" + kwList.Count + ")") : "类型（无关键词限制）");
                     lines.Add("[删除事件] 共删除 " + removedActions + " 个事件（条件 " + cond + "）");
                     List<KeyValuePair<string, int>> ta = new List<KeyValuePair<string, int>>();
                     foreach (KeyValuePair<string, int> kv in removedByType) if (kv.Key.StartsWith("actions/", StringComparison.Ordinal)) ta.Add(kv);
@@ -743,7 +750,7 @@ namespace LevelConvert
                 }
                 if (removedDecor > 0)
                 {
-                    lines.Add("[删除装饰] 共删除 " + removedDecor + " 个装饰（行含全部关键词" + (decorKwList.Count > 1 ? "×" + decorKwList.Count : "") + "）");
+                    lines.Add("[删除装饰] 共删除 " + removedDecor + " 个装饰（" + (decorKwList.Count > 0 ? "行含全部关键词" + (decorKwList.Count > 1 ? "×" + decorKwList.Count : "") : "无关键词限制，全部删除") + "）");
                     List<KeyValuePair<string, int>> td = new List<KeyValuePair<string, int>>();
                     foreach (KeyValuePair<string, int> kv in removedByType) if (kv.Key.StartsWith("decorations/", StringComparison.Ordinal)) td.Add(kv);
                     td.Sort(delegate (KeyValuePair<string, int> a, KeyValuePair<string, int> b) { return b.Value - a.Value; });
