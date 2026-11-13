@@ -142,6 +142,7 @@ level convert.exe "某谱.adofai" --list
 | `Cli.cs` | 命令行前端（`level convert.exe`） |
 | `Gui.cs` | 图形界面（WinForms，`level convert GUI.exe`；DPI 感知字体度量布局引擎、多关键词、大类面板） |
 | `Installer.cs` | 单文件安装包源码（内嵌 GUI/CLI/README） |
+| `AGENTS.md` | DSH 工作区默认规则（自动加载）：项目更改须同步更新 README，检测到 GitHub 远程则执行 commit+push |
 | `Audit.cs` | 界面布局审计（DPI 感知、多尺寸重叠/裁剪自动检查，开发辅助） |
 | `build.cmd` | 一键重编译两个 exe + 打安装包（调用 Windows 自带 `csc.exe`） |
 
