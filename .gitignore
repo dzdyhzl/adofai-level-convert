@@ -6,3 +6,5 @@ _*.adofai
 release/_installtest/
 *.user
 .vs/
+# 关卡文件属于用户内容，不入库
+*.adofai
