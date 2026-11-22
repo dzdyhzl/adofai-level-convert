@@ -1,0 +1,7 @@
+#COGNITION-ROOT-MANIFEST: 1
+#Format-Version: project-cognition/v1
+#Locale: zh-CN
+#Project: level convert
+#Global-Constraints: -
+#Volume: id=meta kind=meta path=cognition.meta.txt format=meta-v1 depends=- state=enabled
+#Volume: id=code kind=code path=cognition.code.txt format=object-fras-v1 depends=meta state=enabled
